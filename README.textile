@@ -1,0 +1,13 @@
+h1. CPVideoKit for Cappuccino
+
+Please take a look at "this demo":http://github.com/jfahrenkrug/CPVideoKitDemo.
+
+h2. Usage
+
+Copy the CPVideoKit folder to your project's Frameworks folder and include @@import <CPVideoKit/CPVideoKit.j>@ in your class/controller/whatever.
+Then create your VideoView as you would create a normal CPView, or use Atlas and a custom view.
+
+This is very much a work in progress. I plan to add Vimeo and search support soon.
+
+Have fun!
+
