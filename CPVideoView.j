@@ -7,6 +7,11 @@
  */
 
 @import <AppKit/CPWebView.j>
+@import "CPYouTubeVideoPlayer.j"
+@import "CPVimeoVideoPlayer.j"
+
+CPVideoKitServiceYouTube = 0;
+CPVideoKitServiceVimeo = 1;
 
 
 @implementation CPWebView(ScrollFixes) {
@@ -27,27 +32,39 @@
 
 @implementation CPVideoView : CPWebView
 {
-    DOMElement      _DOMVideoElement;
-    JSObject        _ytPlayer               @accessors(property=ytPlayer);
+    DOMElement      _DOMVideoElement;              
     BOOL            _playerReady;
     BOOL            _googleAjaxLoaded;
-    id delegate @accessors;
-    int _percentageLoaded @accessors(property=percentageLoaded);
-    int _bytesLoaded @accessors(property=bytesLoaded);
-    int _bytesTotal @accessors(property=bytesTotal);
-    int _duration @accessors(property=duration);
-    int _currentTime @accessors(property=currentTime);
+    id delegate @accessors;    
     BOOL hasLoaded;
+    int _service;
+    id _player @accessors(property=player);;
 }
 
 - (id)initWithFrame:(CGRect)aFrame
 {
+    return [self initWithFrame:aFrame service:CPVideoKitServiceYouTube];
+}
+
+- (id)initWithFrame:(CGRect)aFrame service:(int)aService
+{
     if (self = [super initWithFrame:aFrame]) {
         var bounds = [self bounds];
+
+        _service = aService;
+        if (_service == CPVideoKitServiceYouTube)
+        {
+            _player = [[CPYouTubeVideoPlayer alloc] init];
+            [_player setDelegate:self];
+        }
+        else if (_service == CPVideoKitServiceVimeo)
+        {
+            _player = [[CPVimeoVideoPlayer alloc] init];
+            [_player setDelegate:self];
+        }
         
         [self setFrameLoadDelegate:self];
-        console.log(document.location.href.substring(0, document.location.href.lastIndexOf('/')));
-        [self setMainFrameURL:document.location.href.substring(0, document.location.href.lastIndexOf('/')) + @"/Frameworks/CPVideoKit/iframe.html"];
+        [self setMainFrameURL:document.location.href.substring(0, document.location.href.lastIndexOf('/')) + @"/Frameworks/CPVideoKit/" + [_player iFrameFileName]];
     }
 
     return self;
@@ -74,43 +91,8 @@
 
 - (void)createVideo
 {
-    var domWin = [self DOMWindow];
-    var ytPlayerReadyCallback = function() 
-    {
-        if (delegate && [delegate respondsToSelector:@selector(videoViewIsReady:)]) 
-        {
-            [delegate videoViewIsReady:self];
-        }
-        _playerReady = YES;
-    }
-
-    var updateData = function() 
-    {
-        console.log('update data');
-        [self setDuration:_ytPlayer.getDuration()];
-        [self setCurrentTime:_ytPlayer.getCurrentTime()];
-        [self setBytesLoaded:_ytPlayer.getVideoBytesLoaded()];
-        [self setBytesTotal:_ytPlayer.getVideoBytesTotal()];
-        [self setPercentageLoaded:(_bytesLoaded/(_bytesTotal/100.0))];
-    };
-    
-    domWin.onYouTubePlayerReady = function(playerId) {
-        _ytPlayer = domWin.document.getElementById("CPVideoViewEmbed");
-        domWin.setInterval(updateData, 250);
-        //updateytplayerInfo();
-        //ytplayer.addEventListener("onStateChange", "onytplayerStateChange");
-        //ytplayer.addEventListener("onError", "onPlayerError");
-        ytPlayerReadyCallback();
-    };
-          
-    var params = { allowScriptAccess: "always", bgcolor: "#cccccc" };
-    // this sets the id of the object or embed tag to 'myytplayer'.
-    // You then use this id to access the swf and make calls to the player's API
-    var atts = { id: "CPVideoViewEmbed" };
-    domWin.swfobject.embedSWF("http://www.youtube.com/apiplayer?enablejsapi=1&border=0playerapiid=ytplayer",
-                     "CPVideoViewDiv", "100%", "100%", "8", null, null, params, atts);
+    [_player embedInDOM:[self DOMWindow]]; 
 }
-
 
 // functions for the api calls
 - (void)loadVideo:(CPString)id
@@ -120,10 +102,8 @@
 
 - (void)loadVideo:(CPString)id startSeconds:(int)startSeconds
 {
-    if (_playerReady) 
-    {
-        _ytPlayer.loadVideoById(id, parseInt(startSeconds));
-    }
+    console.log("loadVideo");
+    [_player loadVideo:id startSeconds:startSeconds];
 }
 
 - (void)cueVideo:(CPString)id
@@ -133,87 +113,49 @@
 
 - (void)cueVideo:(CPString)id startSeconds:(int)startSeconds 
 {
-    if (_playerReady) 
-    {
-        _ytPlayer.cueVideoById(id, startSeconds);
-    }
+    [_player cueVideo:id startSeconds:startSeconds];
 }
 
 
 - (IBAction)play:(id)sender
 {
-  if (_playerReady) 
-  {
-    _ytPlayer.playVideo();
-  }
+    [_player play];
 }
 
 - (IBAction)pause:(id)sender 
 {
-    if (_playerReady) 
-    {
-        _ytPlayer.pauseVideo();
-    }
+    [_player pause];
 }
 
 - (IBAction)stop:(id)sender
 {
-    if (_playerReady) 
-    {
-        _ytPlayer.stopVideo();
-    }
+    [_player stop];
 }
 
 
 - (void)setMuted:(BOOL)muted 
 {
-    if (_playerReady) 
-    {
-        if (muted)
-        {
-            _ytPlayer.mute();
-        } 
-        else
-        {
-            _ytPlayer.unMute();
-        }
-    }
+    [_player setMuted:muted];
 }
 
 - (BOOL)isMuted
 {
-    if (_playerReady && _ytPlayer.isMuted()) 
-    {
-        return YES;
-    }
-    
-    return NO;
+    return [_player isMuted];
 }
 
 - (void)setVolume:(int)newVolume
- {
-     if (_playerReady) 
-     {
-         _ytPlayer.setVolume(newVolume);
-     }
+{
+    [_player setVolume:newVolume];
 }
 
 - (int) volume
 {
-    if (_playerReady) 
-    {
-        return _ytPlayer.getVolume();
-    }
-    
-    return 0;
+    return [_player volume];
 }
 
 - (void)clearVideo
 {
-    if (_playerReady) 
-    {
-        _ytPlayer.clearVideo();
-    }
+    [_player clearVideo];
 }
 
 /*
@@ -226,10 +168,7 @@ function getPlayerState() {
 
 - (void)seekTo:(int)seconds 
 {
-    if (_playerReady) 
-    {
-        _ytPlayer.seekTo(seconds, true);
-    }
+    [_player seekTo:seconds];
 }
 
 - (void)setFrameSize:(CGSize)aSize
@@ -237,6 +176,14 @@ function getPlayerState() {
     [super setFrameSize:aSize];
     var bounds = [self bounds];
 
+}
+
+- (void)videoPlayerIsReady:(id)videoPlayer
+{
+    if (delegate && [delegate respondsToSelector:@selector(videoViewIsReady:)]) 
+    {
+        [delegate videoViewIsReady:self];
+    }
 }
 
 /* Overriding CPWebView's implementation */
@@ -258,12 +205,9 @@ function getPlayerState() {
 
 - (BOOL)isPlayerReady 
 {
-    return _playerReady;
+    return _player.ready;
 }
 
-+ (JSObject)gmNamespace {
-    return gmNamespace;
-}
 
 @end
 
