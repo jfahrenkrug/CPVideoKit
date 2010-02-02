@@ -49,7 +49,7 @@
 
     var updateData = function() 
     {
-        console.log('update data');
+        //console.log('update data');
         [self updateData];
     };
     
@@ -74,7 +74,6 @@
 // functions for the api calls
 - (void)loadVideo:(CPString)id
 {
-    console.log("yt loadVideo");
     [self loadVideo:id startSeconds:0];
 }
 

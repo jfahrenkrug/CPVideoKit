@@ -58,7 +58,7 @@
 
     var updateData = function() 
     {
-        console.log('update data vimeo');
+        //console.log('update data vimeo');
         [self updateData];
     };
     

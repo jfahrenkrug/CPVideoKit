@@ -102,7 +102,6 @@ CPVideoKitServiceVimeo = 1;
 
 - (void)loadVideo:(CPString)id startSeconds:(int)startSeconds
 {
-    console.log("loadVideo");
     [_player loadVideo:id startSeconds:startSeconds];
 }
 
